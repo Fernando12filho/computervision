@@ -1,0 +1,95 @@
+# ---------------------------------------------------------------
+# Secrets / credentials (never commit)
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+*.sqlite
+*.sqlite3
+*.db
+
+# ---------------------------------------------------------------
+# Local tooling / editor
+# ---------------------------------------------------------------
+.claude/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------
+env/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# ---------------------------------------------------------------
+# Datasets, model weights, large generated outputs
+# ---------------------------------------------------------------
+data/
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.h5
+
+# ---------------------------------------------------------------
+# LaTeX build artifacts (keep .tex, .bib, .sty, figures)
+# ---------------------------------------------------------------
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.log
+*.out
+*.toc
+*.synctex.gz
+build.log
+
+# ---------------------------------------------------------------
+# PDFs: only the compiled report of each assignment is kept.
+# Course handouts / lecture slides are the instructor's material.
+# ---------------------------------------------------------------
+*.pdf
+!**/report/main.pdf
+
+# ---------------------------------------------------------------
+# Submission bundles and duplicates
+# ---------------------------------------------------------------
+*.zip
+*copy*.*
+
+# ---------------------------------------------------------------
+# Not part of this repo
+# ---------------------------------------------------------------
+coinflow-fullstack/
+finalproject/
+/highcontrast.png
+.git-standalone-backup/
+
+# Assignment 1: runtime state and scratch files
+assignment1/settings.json
+assignment1/edited.avi
+assignment1/test1.py
+assignment1/SUMMARY.md
+assignment1/lowbrigth.png
+assignment1/mainwindow.png
+assignment1/screenshots/

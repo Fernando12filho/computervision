@@ -1,0 +1,73 @@
+=== Environment
+Python       3.13.5
+PyTorch      2.14.1+cpu
+torchvision  0.29.1+cpu
+NumPy        2.5.4
+scikit-learn 1.9.1
+Matplotlib   3.11.2
+OS           Windows-11-10.0.26200-SP0
+Processor    Intel64 Family 6 Model 183 Stepping 1, GenuineIntel
+Device       CPU (CUDA available: False), 16 threads
+Seed         42
+
+=== Layers (input -> output shape, trainable parameters)
+conv1  (1, 28, 28)     -> (6, 28, 28)         156
+conv2  (6, 14, 14)     -> (16, 10, 10)       2416
+fc1    (400,)          -> (120,)            48120
+fc2    (120,)          -> (84,)             10164
+fc3    (84,)           -> (10,)               850
+total trainable parameters: 61706
+
+=== lr_0.01: SGD lr=0.01 momentum=0.9 batch=64 epochs=10 seed=42
+normalization (training split): mean=0.1307 std=0.3082
+epoch  1 | train loss 0.0903 acc 0.9723 F1 0.9722 | val loss 0.1084 acc 0.9675 F1 0.9673 | 10.3s
+epoch  2 | train loss 0.0575 acc 0.9814 F1 0.9812 | val loss 0.0724 acc 0.9778 F1 0.9776 | 7.0s
+epoch  3 | train loss 0.0431 acc 0.9861 F1 0.9859 | val loss 0.0693 acc 0.9783 F1 0.9781 | 7.7s
+epoch  4 | train loss 0.0413 acc 0.9867 F1 0.9866 | val loss 0.0643 acc 0.9827 F1 0.9826 | 7.2s
+epoch  5 | train loss 0.0261 acc 0.9916 F1 0.9915 | val loss 0.0557 acc 0.9831 F1 0.9829 | 7.5s
+epoch  6 | train loss 0.0227 acc 0.9928 F1 0.9927 | val loss 0.0574 acc 0.9829 F1 0.9827 | 7.2s
+epoch  7 | train loss 0.0136 acc 0.9958 F1 0.9958 | val loss 0.0425 acc 0.9877 F1 0.9876 | 7.4s
+epoch  8 | train loss 0.0131 acc 0.9959 F1 0.9959 | val loss 0.0473 acc 0.9863 F1 0.9862 | 8.0s
+epoch  9 | train loss 0.0248 acc 0.9911 F1 0.9909 | val loss 0.0558 acc 0.9854 F1 0.9853 | 8.7s
+epoch 10 | train loss 0.0129 acc 0.9956 F1 0.9956 | val loss 0.0473 acc 0.9868 F1 0.9867 | 8.0s
+
+=== lr_0.001: SGD lr=0.001 momentum=0.9 batch=64 epochs=10 seed=42
+normalization (training split): mean=0.1307 std=0.3082
+epoch  1 | train loss 0.3232 acc 0.9016 F1 0.9008 | val loss 0.3415 acc 0.8944 F1 0.8933 | 10.8s
+epoch  2 | train loss 0.1666 acc 0.9497 F1 0.9494 | val loss 0.1801 acc 0.9459 F1 0.9456 | 8.1s
+epoch  3 | train loss 0.1235 acc 0.9619 F1 0.9618 | val loss 0.1397 acc 0.9566 F1 0.9566 | 7.3s
+epoch  4 | train loss 0.1058 acc 0.9673 F1 0.9670 | val loss 0.1210 acc 0.9639 F1 0.9637 | 6.2s
+epoch  5 | train loss 0.0771 acc 0.9757 F1 0.9756 | val loss 0.0906 acc 0.9728 F1 0.9727 | 6.3s
+epoch  6 | train loss 0.0696 acc 0.9780 F1 0.9780 | val loss 0.0864 acc 0.9748 F1 0.9745 | 6.3s
+epoch  7 | train loss 0.0640 acc 0.9799 F1 0.9798 | val loss 0.0816 acc 0.9741 F1 0.9739 | 6.6s
+epoch  8 | train loss 0.0562 acc 0.9825 F1 0.9824 | val loss 0.0755 acc 0.9770 F1 0.9768 | 6.3s
+epoch  9 | train loss 0.0518 acc 0.9839 F1 0.9838 | val loss 0.0678 acc 0.9788 F1 0.9786 | 6.3s
+epoch 10 | train loss 0.0461 acc 0.9860 F1 0.9859 | val loss 0.0670 acc 0.9792 F1 0.9790 | 6.5s
+
+=== lr_0.1: SGD lr=0.1 momentum=0.9 batch=64 epochs=10 seed=42
+normalization (training split): mean=0.1307 std=0.3082
+epoch  1 | train loss 0.2521 acc 0.9384 F1 0.9380 | val loss 0.2576 acc 0.9338 F1 0.9333 | 10.4s
+epoch  2 | train loss 0.4911 acc 0.8671 F1 0.8687 | val loss 0.5169 acc 0.8628 F1 0.8645 | 7.0s
+epoch  3 | train loss 2.3045 acc 0.1038 F1 0.0188 | val loss 2.3031 acc 0.1068 F1 0.0193 | 6.1s
+epoch  4 | train loss 2.3049 acc 0.1122 F1 0.0203 | val loss 2.3040 acc 0.1133 F1 0.0203 | 7.3s
+epoch  5 | train loss 2.3047 acc 0.0974 F1 0.0179 | val loss 2.3032 acc 0.0981 F1 0.0179 | 6.8s
+epoch  6 | train loss 2.3061 acc 0.1122 F1 0.0203 | val loss 2.3056 acc 0.1133 F1 0.0203 | 6.7s
+epoch  7 | train loss 2.3039 acc 0.1122 F1 0.0203 | val loss 2.3039 acc 0.1133 F1 0.0203 | 7.2s
+epoch  8 | train loss 2.3029 acc 0.1038 F1 0.0188 | val loss 2.3023 acc 0.1068 F1 0.0193 | 7.1s
+epoch  9 | train loss 2.3044 acc 0.0974 F1 0.0179 | val loss 2.3043 acc 0.0981 F1 0.0179 | 6.6s
+epoch 10 | train loss 2.3032 acc 0.1122 F1 0.0203 | val loss 2.3030 acc 0.1133 F1 0.0203 | 6.7s
+
+=== Validation summary after epoch 10
+lr_0.01   val acc 0.9868  val F1 0.9867  val loss 0.0473  best val acc 0.9877 (epoch 7)
+lr_0.001  val acc 0.9792  val F1 0.9790  val loss 0.0670  best val acc 0.9792 (epoch 10)
+lr_0.1    val acc 0.1133  val F1 0.0203  val loss 2.3030  best val acc 0.9338 (epoch 1)
+selected configuration: lr_0.01
+
+=== TEST (lr_0.01, evaluated once)
+test_loss        0.0402
+test_acc         0.9884
+macro_precision  0.9882
+macro_recall     0.9885
+macro_f1         0.9883
+
+figures saved to ./report/figures

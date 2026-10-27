@@ -1,0 +1,231 @@
+\chapter{Methodology and Implementation}
+\label{ch:method}
+
+%-------------------------------------------------------
+
+I wrote all filters in Python. The functions live in a single module,
+\texttt{filters.py}, and the Jupyter notebook
+\texttt{notebooks/assignment2.ipynb} imports them, applies them to the
+input image, and saves every figure shown in Chapter \ref{ch:results}.
+The manual filters use only NumPy \citep{harris2020numpy}; OpenCV
+\citep{bradski2000} is used only for the exercises that allow it, for
+loading the image, and as a reference to check my own code against.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Development Environment}
+\label{sec:environment}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{table}[h]
+    \centering
+    \caption[Software environment.]%
+    {Software environment used to develop and run the program.}
+
+    \begin{tabular}{P{1.6in}|P{1.2in}|P{2.4in}}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Component & Version & Purpose \\
+        \hline\hline
+        Python & 3.13.5 & Programming language \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        NumPy & 2.5.3 & Arrays, padding and the manual filters \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        OpenCV (opencv-python) & 5.0.0.93 & Image loading and the built-in filters (\texttt{blur}, \texttt{Sobel}, \texttt{GaussianBlur}) \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Matplotlib & 3.11.2 & Displaying and saving the result figures \citep{hunter2007} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Jupyter / pytest & 1.1.1 / 9.1.1 & Running the exercises and testing the manual filters \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:environment}
+\end{table}
+
+The input image, \texttt{dog.bmp}, is a $410 \times 361$ color image. I
+load it once in grayscale, since all filters work on a single channel.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Manual Convolution}
+\label{sec:convolve}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+All the manual filters (Exercises 1, 3, 4 and 5) share one function,
+\texttt{convolve\_manual} (Listing \ref{lst:convolve}), which implements
+Equation \ref{eq:correlation}. First it pads the image by $r$ pixels on
+every side using reflection (\texttt{np.pad} with
+\texttt{mode="reflect"}), so that pixels on the border also have a full
+neighborhood. This is the same border mode OpenCV uses by default
+(\texttt{BORDER\_REFLECT\_101}) \citep{opencvfilters}. Then it loops over
+every pixel, cuts out the $k \times k$ window, multiplies it element-wise
+by the kernel, and stores the sum. The work is done in
+\texttt{float64}, because the sums can be larger than 255 or negative.
+
+\lstinputlisting[language=Python, firstline=14, lastline=31,
+    firstnumber=auto,
+    caption={Manual convolution used by all hand-written filters (\texttt{filters.py}).},
+    label={lst:convolve}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exercise 1 --- Box Filter without OpenCV}
+\label{sec:ex1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The box filter builds a $k \times k$ kernel of ones divided by $k^2$
+(Equation \ref{eq:box}) and passes it to \texttt{convolve\_manual}. The
+result is rounded and clipped back to \texttt{uint8} so it can be
+displayed and compared with OpenCV (Listing \ref{lst:ex1}). The same
+function handles both kernel sizes: \texttt{box\_filter\_manual(img, 3)}
+and \texttt{box\_filter\_manual(img, 5)}.
+
+\lstinputlisting[language=Python, firstline=34, lastline=38,
+    firstnumber=auto,
+    caption={Manual box filter (\texttt{filters.py}).},
+    label={lst:ex1}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exercise 2 --- Box Filter with OpenCV}
+\label{sec:ex2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+With OpenCV, the box filter is a single call to \texttt{cv2.blur}
+\citep{opencvfilters} (Listing \ref{lst:ex2}).
+
+\lstinputlisting[language=Python, firstline=82, lastline=83,
+    firstnumber=auto,
+    caption={Box filter with OpenCV (\texttt{filters.py}).},
+    label={lst:ex2}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exercises 3 and 4 --- Sobel X and Sobel Y without OpenCV}
+\label{sec:ex3}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\texttt{sobel\_kernels} builds $K_x$ as the outer product of the
+smoothing and derivative vectors from Section \ref{sec:background}, and
+$K_y$ as its transpose (Listing \ref{lst:kernels}). For $k=5$ this gives
+the standard $5 \times 5$ Sobel kernel:
+\begin{equation}
+  K_{x,5\times5} =
+  \begin{bmatrix}
+    -1 & -2 & 0 & 2 & 1 \\
+    -4 & -8 & 0 & 8 & 4 \\
+    -6 & -12 & 0 & 12 & 6 \\
+    -4 & -8 & 0 & 8 & 4 \\
+    -1 & -2 & 0 & 2 & 1
+  \end{bmatrix}
+  \label{eq:sobel5}
+\end{equation}
+
+\lstinputlisting[language=Python, firstline=41, lastline=56,
+    firstnumber=auto,
+    caption={Building the $3\times3$ and $5\times5$ Sobel kernels (\texttt{filters.py}).},
+    label={lst:kernels}]{../filters.py}
+
+The X and Y filters simply convolve the image with $K_x$ or $K_y$
+(Listing \ref{lst:ex3}). The output is kept as a signed \texttt{float64}
+array, because a gradient is negative when the intensity goes from bright
+to dark.
+
+\lstinputlisting[language=Python, firstline=59, lastline=68,
+    firstnumber=auto,
+    caption={Manual Sobel X (Exercise 3) and Sobel Y (Exercise 4) filters (\texttt{filters.py}).},
+    label={lst:ex3}]{../filters.py}
+
+A gradient image cannot be shown directly, since its values go far
+outside $[0, 255]$ (for example, $-470$ to $465$ for $3 \times 3$ and
+$-6032$ to $4994$ for $5 \times 5$). To display it, I take the absolute
+value and scale it so the strongest edge becomes 255 (Listing
+\ref{lst:display}). Scaling each image by its own maximum also makes the
+$3 \times 3$ and $5 \times 5$ results comparable side by side.
+
+\lstinputlisting[language=Python, firstline=101, lastline=104,
+    firstnumber=auto,
+    caption={Mapping a gradient to 0--255 for display (\texttt{filters.py}).},
+    label={lst:display}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exercise 5 --- Sobel X and Y without OpenCV}
+\label{sec:ex5}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The combined filter runs both manual Sobel filters and joins them with
+the gradient magnitude of Equation \ref{eq:magnitude} (Listing
+\ref{lst:ex5}).
+
+\lstinputlisting[language=Python, firstline=71, lastline=75,
+    firstnumber=auto,
+    caption={Manual combined Sobel filter (\texttt{filters.py}).},
+    label={lst:ex5}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exercise 6 --- Sobel X and Y with OpenCV}
+\label{sec:ex6}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+With OpenCV, \texttt{cv2.Sobel} computes each direction and
+\texttt{cv2.magnitude} combines them \citep{opencvfilters}. I request a
+\texttt{CV\_64F} output so negative gradients are not cut off (Listing
+\ref{lst:ex6}).
+
+\lstinputlisting[language=Python, firstline=86, lastline=89,
+    firstnumber=auto,
+    caption={Combined Sobel filter with OpenCV (\texttt{filters.py}).},
+    label={lst:ex6}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Exercise 7 --- Gaussian Filter with OpenCV}
+\label{sec:ex7}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The Gaussian filter uses \texttt{cv2.GaussianBlur} with $\sigma = 0$,
+so OpenCV chooses $\sigma$ from the kernel size (Listing \ref{lst:ex7}).
+
+\lstinputlisting[language=Python, firstline=92, lastline=94,
+    firstnumber=auto,
+    caption={Gaussian filter with OpenCV (\texttt{filters.py}).},
+    label={lst:ex7}]{../filters.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Testing the Manual Filters}
+\label{sec:tests}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To make sure the hand-written filters are correct, I wrote a small set
+of tests with pytest (\texttt{test\_box\_filter.py}). They check that the
+output has the same shape as the input, that a constant image stays
+constant after the box filter, that a sharp $0 \mid 255$ edge turns into
+the expected ramp ($85$, $170$), and that both the manual box filter and
+the manual Sobel filters match OpenCV. All five tests pass.
+
+\begin{table}[h]
+    \centering
+    \caption[Requirements traceability.]%
+    {Mapping of each exercise to its implementation and to the figure that shows its output.}
+
+    \begin{tabular}{c|P{2.2in}|P{1.7in}|c}
+        \specialrule{1.5pt}{0pt}{0pt}
+        \# & Exercise & Implemented in & Evidence \\
+        \hline\hline
+        1 & Box filter (manual) & \texttt{box\_filter\_manual} & Figs.~\ref{fig:ex1}, \ref{fig:ex1-zoom} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        2 & Box filter (OpenCV) & \texttt{box\_filter\_cv} & Fig.~\ref{fig:ex2} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        3 & Sobel X (manual) & \texttt{sobel\_x\_manual} & Fig.~\ref{fig:ex3} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        4 & Sobel Y (manual) & \texttt{sobel\_y\_manual} & Fig.~\ref{fig:ex4} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        5 & Sobel X + Y (manual) & \texttt{sobel\_xy\_manual} & Fig.~\ref{fig:ex5} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        6 & Sobel X + Y (OpenCV) & \texttt{sobel\_xy\_cv} & Fig.~\ref{fig:ex6} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        7 & Gaussian filter (OpenCV) & \texttt{gaussian\_cv} & Figs.~\ref{fig:ex7}, \ref{fig:ex7-zoom} \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:traceability}
+\end{table}

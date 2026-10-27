@@ -1,0 +1,108 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+%-------------------------------------------------------
+
+In Assignment 2 I applied box, Sobel and Gaussian filters, whose kernels
+are fixed by formula. A convolutional neural network (CNN) uses the same
+sliding-window operation, but it learns the kernel values from labeled
+examples \citep{goodfellow2016}. In this assignment I implemented a small CNN in
+PyTorch \citep{paszke2019}, trained it to recognize handwritten digits
+from the MNIST dataset, followed how it learns batch by batch and epoch
+by epoch, and ran a controlled experiment on the learning rate.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Objectives}
+\label{sec:objectives}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The assignment has five tasks:
+
+\begin{enumerate}
+  \item Implement the CNN in PyTorch and document every layer, its
+        input/output dimensions, its trainable parameters and the
+        training configuration.
+  \item Train the baseline for 10 epochs and plot the training loss,
+        accuracy and F1-score batch by batch during the first epoch.
+  \item Plot training and validation loss, accuracy and F1-score over
+        the 10 epochs and discuss convergence and over/underfitting.
+  \item Change one hyperparameter (I chose the learning rate), train the
+        alternatives under the same conditions, and pick the best
+        configuration using validation data only.
+  \item Evaluate the chosen model once on the reserved test set and
+        document how to reproduce every result.
+\end{enumerate}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background}
+\label{sec:background}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Training}
+
+The network outputs 10 scores (logits), one per digit. The cross-entropy
+loss turns them into probabilities with softmax and penalizes a low
+probability on the correct class:
+\begin{equation}
+  \mathcal{L} = -\frac{1}{N} \sum_{n=1}^{N} \log
+  \frac{e^{z_{n,y_n}}}{\sum_{c=0}^{9} e^{z_{n,c}}}
+  \label{eq:ce}
+\end{equation}
+where $z_{n,c}$ is the score of image $n$ for class $c$ and $y_n$ is its
+true label. Training repeats four steps for every mini-batch: forward
+pass, loss, back-propagation of the gradients, and a parameter update
+\citep{abidl08}. With stochastic gradient descent (SGD) with momentum
+$\mu$, the update for parameters $\theta$ with learning rate $\eta$ is
+\begin{equation}
+  v \leftarrow \mu v + \nabla_\theta \mathcal{L}, \qquad
+  \theta \leftarrow \theta - \eta\, v
+  \label{eq:sgd}
+\end{equation}
+The learning rate controls the step size, which is why it is the factor
+I study in Task 4.
+
+\subsection{Evaluation Metrics}
+
+Accuracy is the fraction of correctly classified images. For each class
+$c$, precision $P_c$ is the fraction of images predicted as $c$ that
+really are $c$, and recall $R_c$ is the fraction of images of class $c$
+that the model finds. The F1-score is their harmonic mean,
+$F1_c = 2 P_c R_c / (P_c + R_c)$. Throughout this report I use
+\emph{macro} averages: the metric is computed for each digit separately
+and then averaged with equal weight over the set of digits $C$,
+\begin{equation}
+  \text{macro-F1} = \frac{1}{|C|} \sum_{c \in C} F1_c
+  \label{eq:macrof1}
+\end{equation}
+so a digit the model handles badly lowers the score even if it is rare.
+On the full training, validation and test sets, $C$ is all 10 digits.
+All three are computed with scikit-learn \citep{pedregosa2011}
+(\texttt{average="macro"}).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Report Organization}
+\label{sec:organization}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Chapter \ref{ch:setup} describes the dataset, the data split and the
+seeding shared by all tasks. Each of the five tasks then has its own
+chapter:
+
+\begin{itemize}
+  \item Chapter \ref{ch:task1}: Task 1, CNN implementation and model
+        documentation;
+  \item Chapter \ref{ch:task2}: Task 2, first-epoch batch-level learning
+        analysis;
+  \item Chapter \ref{ch:task3}: Task 3, ten-epoch training and validation
+        analysis;
+  \item Chapter \ref{ch:task4}: Task 4, controlled learning-rate
+        experiment;
+  \item Chapter \ref{ch:task5}: Task 5, independent testing and
+        reproducibility.
+\end{itemize}
+
+Chapter \ref{ch:conclusion} summarizes the results and their
+limitations, and Appendix \ref{app:source} lists the complete source
+code.

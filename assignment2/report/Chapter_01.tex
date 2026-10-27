@@ -1,0 +1,113 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+%-------------------------------------------------------
+
+Filtering is one of the most common operations in image processing. It
+is used to remove noise, to smooth an image before further analysis,
+and to find edges, which are the starting point of many computer vision
+tasks. In this assignment I implemented three classic filters --- the
+box filter, the Sobel filter, and the Gaussian filter --- both by hand
+and with OpenCV, and applied each of them to the same input image with
+$3 \times 3$ and $5 \times 5$ kernels.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Objectives}
+\label{sec:objectives}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The assignment requires implementing the following filters, each with a
+$3 \times 3$ and a $5 \times 5$ kernel:
+
+\begin{enumerate}
+  \item Box filter, written without OpenCV.
+  \item Box filter, using OpenCV.
+  \item Sobel filter for X-axis edges, written without OpenCV.
+  \item Sobel filter for Y-axis edges, written without OpenCV.
+  \item Sobel filter combining X-axis and Y-axis edges, written without
+        OpenCV.
+  \item Sobel filter combining X-axis and Y-axis edges, using OpenCV.
+  \item Gaussian filter, using OpenCV.
+\end{enumerate}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background}
+\label{sec:background}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In Assignment 1 we worked with point operators, where each output pixel
+depends only on the matching input pixel. Filters are
+\emph{neighborhood operators}: each output pixel is computed from a
+small window of pixels around it \citep{szeliski2022}. The window is
+weighted by a small matrix called the \emph{kernel} $h$, and the
+operation is written as
+\begin{equation}
+  g(x,y) = \sum_{i=-r}^{r} \sum_{j=-r}^{r} h(i,j)\, f(x+i,\, y+j)
+  \label{eq:correlation}
+\end{equation}
+where $f$ is the input image, $g$ is the output image, and the kernel
+has size $k \times k$ with $r = \lfloor k/2 \rfloor$. The kernel
+``slides'' over the image, and at every position the pixels under it are
+multiplied by the kernel weights and summed. The filters in this
+assignment only differ in the values of $h$.
+
+\subsection{Box Filter}
+
+The box (mean) filter replaces every pixel with the average of its
+$k \times k$ neighborhood, so all weights are equal to $1/k^2$
+\citep{gonzalez2018}:
+\begin{equation}
+  h_{3\times3} = \frac{1}{9}
+  \begin{bmatrix} 1 & 1 & 1 \\ 1 & 1 & 1 \\ 1 & 1 & 1 \end{bmatrix}
+  \label{eq:box}
+\end{equation}
+Averaging reduces noise, but it also blurs edges and fine detail. A
+larger kernel averages more pixels and therefore blurs more.
+
+\subsection{Sobel Filter}
+
+The Sobel filter estimates the image gradient, i.e.\ how fast the
+intensity changes in each direction. Its kernel is the product of a
+smoothing vector and a derivative vector \citep{szeliski2022}:
+\begin{equation}
+  K_x = \begin{bmatrix} 1 \\ 2 \\ 1 \end{bmatrix}
+        \begin{bmatrix} -1 & 0 & 1 \end{bmatrix}
+      = \begin{bmatrix} -1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1 \end{bmatrix},
+  \qquad K_y = K_x^{T}
+  \label{eq:sobel3}
+\end{equation}
+$K_x$ gives the horizontal gradient $G_x$, which is strong on vertical
+edges; $K_y$ gives the vertical gradient $G_y$, which is strong on
+horizontal edges. The $5 \times 5$ version is built the same way from
+the vectors $[1, 4, 6, 4, 1]$ (smoothing) and $[-1, -2, 0, 2, 1]$
+(derivative). The two directions are combined into the gradient
+magnitude
+\begin{equation}
+  G = \sqrt{G_x^2 + G_y^2}
+  \label{eq:magnitude}
+\end{equation}
+which responds to edges in any direction.
+
+\subsection{Gaussian Filter}
+
+The Gaussian filter is also a smoothing filter, but instead of equal
+weights it uses weights that follow a Gaussian (bell-shaped) curve, so
+the center pixel counts the most and far pixels count less
+\citep{gonzalez2018}. With $\sigma = 0$, OpenCV derives $\sigma$ from
+the kernel size; the resulting 1D weights are $[0.25, 0.5, 0.25]$ for
+$3 \times 3$ and $[0.0625, 0.25, 0.375, 0.25, 0.0625]$ for
+$5 \times 5$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Report Organization}
+\label{sec:organization}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The remainder of this report is organized as follows. Chapter
+\ref{ch:method} describes the development environment and the code for
+each of the seven exercises. Chapter \ref{ch:results} presents the
+output of every filter on the input image. Chapter \ref{ch:conclusion}
+discusses the results and the challenges I faced, and concludes the
+report.

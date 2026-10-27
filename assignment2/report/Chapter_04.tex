@@ -1,0 +1,27 @@
+\chapter{Discussion and Conclusion}
+\label{ch:conclusion}
+
+%-------------------------------------------------------
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion}
+\label{sec:discussion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The main goal of this assignment was to write the filters myself and then compare them with the OpenCV built-in functions. After implementing the manual box and Sobel filters, I checked them against \texttt{cv2.blur} and \texttt{cv2.Sobel}, and the maximum difference was 0 for both kernel sizes (Sections \ref{sec:res-ex2} and \ref{sec:res-ex6}). This showed me that OpenCV is not doing anything magical: it applies the same kernels, with the same reflection padding at the borders, that I wrote by hand. The big difference is speed. My Python loop takes about 0.3~s per image, while OpenCV finishes in under a millisecond, because it runs optimized C++ code instead of visiting every pixel from Python. Writing the filters myself also made it clear that the box, Sobel and Gaussian filters all use the same sliding-window operation, and that only the values inside the kernel decide whether the image gets smoothed or its edges get detected.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Challenges and Limitations}
+\label{sec:limitations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+My biggest challenge was understanding the math behind the filters. At first I thought of the operation as a matrix multiplication, but a filter works differently: the $k \times k$ window of the image is multiplied by the kernel element by element (each pixel times the weight in the same position), and then all the products are added up. This is the same as a dot product between the window and the kernel written as two long vectors (Equation \ref{eq:correlation}). The second part was understanding the sliding window: the kernel is centered on one pixel, produces one output value, and then moves one pixel to the right, row by row, until it has covered the whole image. Once this idea was clear, the code became simple, as in \texttt{convolve\_manual} (Listing \ref{lst:convolve}), where it is just two loops, a slice, and a sum. The sliding window also raised two practical problems. Pixels on the border do not have a full neighborhood, so I had to pad the image, and I used reflection to match OpenCV. The sums can also go above 255 or below 0, especially for the Sobel filter, so I did all the math in \texttt{float64} and only converted back to 0--255 at the end.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+\label{sec:conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Filters are neighborhood operations: each output pixel is computed from a window of pixels around it, weighted by a kernel. In this assignment I implemented the box and Sobel filters by hand and used OpenCV for the box, Sobel and Gaussian filters, with $3 \times 3$ and $5 \times 5$ kernels. The smoothing filters removed detail, and the $5 \times 5$ kernels blurred more, with the Gaussian keeping edges better than the box filter. The Sobel filters found vertical edges, horizontal edges, or both combined, and my manual versions produced exactly the same results as OpenCV.

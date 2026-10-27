@@ -1,0 +1,221 @@
+\chapter{Task 1 --- CNN Implementation and Model Documentation}
+\label{ch:task1}
+
+%-------------------------------------------------------
+
+Task 1 asks for the CNN implementation in PyTorch, the purpose and
+input/output dimensions of each layer, a table of trainable parameters
+with an explanation of how they were counted, and the training
+configuration with a short justification. Section \ref{sec:model} covers
+the layers, Section \ref{sec:params} the parameters, Section
+\ref{sec:config} the configuration, and Section \ref{sec:loop} the
+training loop and how the metrics are calculated.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Architecture and Layer Dimensions}
+\label{sec:model}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The network follows the LeNet-5 design \citep{lecun1998}: two
+convolutional layers, each followed by ReLU and $2 \times 2$ max pooling,
+and then three fully connected layers (Listing \ref{lst:model}). This
+meets the minimum requirement of two convolutional layers, one pooling
+layer and one fully connected layer.
+
+\lstinputlisting[language=Python, firstline=7, lastline=34,
+    firstnumber=auto,
+    caption={The CNN (\texttt{model.py}).},
+    label={lst:model}]{../model.py}
+
+The purpose of each layer, for one input image, is:
+
+\begin{itemize}
+  \item \textbf{conv1} ($1 \times 28 \times 28 \rightarrow 6 \times 28 \times 28$):
+        six $5 \times 5$ kernels learn low-level features such as stroke
+        edges and line ends, the same kind of features the Sobel filter
+        found in Assignment 2. Padding of 2 keeps the size at $28 \times 28$
+        (output size $= 28 + 2\cdot2 - 5 + 1 = 28$), so strokes near the
+        border are not lost. The lecture example feeds a
+        $1 \times 32 \times 32$ image to conv1 without padding
+        \citep{abidl08}; padding the $28 \times 28$ MNIST image by 2 pixels
+        gives the same $32 \times 32$ input, so every later layer keeps the
+        lecture's dimensions.
+  \item \textbf{pool1} ($6 \times 28 \times 28 \rightarrow 6 \times 14 \times 14$):
+        max pooling halves the resolution and keeps the strongest response
+        in every $2 \times 2$ block.
+  \item \textbf{conv2} ($6 \times 14 \times 14 \rightarrow 16 \times 10 \times 10$):
+        sixteen $5 \times 5$ kernels, each looking at all six maps from
+        conv1, combine edges into larger parts of digits such as curves,
+        corners and loops. No padding, so $14 - 5 + 1 = 10$.
+  \item \textbf{pool2} ($16 \times 10 \times 10 \rightarrow 16 \times 5 \times 5$):
+        halves the resolution again.
+  \item \textbf{flatten} ($16 \times 5 \times 5 \rightarrow 400$): turns the
+        feature maps into one vector for the fully connected layers.
+  \item \textbf{fc1} ($400 \rightarrow 120$) and \textbf{fc2}
+        ($120 \rightarrow 84$): combine the features from the whole image
+        to decide which digit it is.
+  \item \textbf{fc3} ($84 \rightarrow 10$): one score per digit. There is
+        no softmax here because \texttt{nn.CrossEntropyLoss} applies
+        log-softmax internally (Equation \ref{eq:ce}).
+\end{itemize}
+
+ReLU is applied after conv1, conv2, fc1 and fc2. ReLU, pooling and
+flatten have no parameters.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Trainable Parameters}
+\label{sec:params}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+A convolutional layer with $C_{in}$ input channels, $C_{out}$ kernels of
+size $k \times k$ has $C_{out}(C_{in} k^2 + 1)$ parameters: each kernel
+has $C_{in} k^2$ weights plus one bias. A fully connected layer with
+$n_{in}$ inputs and $n_{out}$ outputs has $n_{out}(n_{in} + 1)$
+parameters. Table \ref{table:params} applies these formulas to every
+layer.
+
+\begin{table}[h]
+    \centering
+    \caption[Trainable parameters per layer.]%
+    {Output shape and trainable parameters of every layer, for one input image.}
+
+    \begin{tabular}{c|c|P{2.3in}|r}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Layer & Output shape & Calculation & Parameters \\
+        \hline\hline
+        conv1 & $6 \times 28 \times 28$ & $6 \times (1 \cdot 5 \cdot 5 + 1)$ & 156 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        pool1 & $6 \times 14 \times 14$ & --- & 0 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        conv2 & $16 \times 10 \times 10$ & $16 \times (6 \cdot 5 \cdot 5 + 1)$ & 2,416 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        pool2 & $16 \times 5 \times 5$ & --- & 0 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        flatten & 400 & --- & 0 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        fc1 & 120 & $120 \times (400 + 1)$ & 48,120 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        fc2 & 84 & $84 \times (120 + 1)$ & 10,164 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        fc3 & 10 & $10 \times (84 + 1)$ & 850 \\
+        \hline\hline
+        \textbf{Total} & & & \textbf{61,706} \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:params}
+\end{table}
+
+To check the hand calculation, \texttt{model.py} also counts the
+parameters in code: \texttt{layer\_table} passes a dummy image through
+the network with forward hooks to record each layer's output shape, and
+sums \texttt{p.numel()} over each layer's tensors. The program prints the
+same 61,706 total (Listing \ref{lst:output-params}). Almost 78\% of the
+parameters are in fc1, while the two convolutional layers together hold
+only about 4\%, because a convolution reuses the same small kernel at
+every position of the image.
+
+\begin{lstlisting}[language={}, numbers=none, caption={Program output: layer shapes and parameter counts.}, label={lst:output-params}]
+=== Layers (input -> output shape, trainable parameters)
+conv1  (1, 28, 28)     -> (6, 28, 28)         156
+conv2  (6, 14, 14)     -> (16, 10, 10)       2416
+fc1    (400,)          -> (120,)            48120
+fc2    (120,)          -> (84,)             10164
+fc3    (84,)           -> (10,)               850
+total trainable parameters: 61706
+\end{lstlisting}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Training Configuration}
+\label{sec:config}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{table}[h]
+    \centering
+    \caption[Baseline training configuration.]%
+    {Baseline training configuration.}
+
+    \begin{tabular}{P{1.7in}|P{3.6in}}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Setting & Value \\
+        \hline\hline
+        Optimizer & SGD with momentum 0.9 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Learning rate & 0.01 (constant, no scheduler) \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Batch size & 64 (750 batches per epoch) \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Epochs & 10 \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Loss function & Cross-entropy (\texttt{nn.CrossEntropyLoss}) \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Weight initialization & PyTorch default, drawn right after seeding \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Random seed & 42 (split, initial weights, shuffling) \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Preprocessing & ToTensor, then Normalize(mean 0.1307, std 0.3082) \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Regularization & None (no dropout, no weight decay) \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:config}
+\end{table}
+
+\textbf{Justification.} Cross-entropy is the standard loss for
+single-label classification with 10 classes, and it is the loss used in
+the lecture's full training example. That example trains with
+\texttt{optim.SGD(lr=0.001, momentum=0.9)} and a batch size of 4
+\citep{abidl08}. I kept SGD with momentum, which averages recent
+gradients and so smooths the noisy mini-batch updates. I used a batch
+of 64, which makes each gradient estimate less noisy and an epoch much
+faster (750 updates instead of 12,000). With 16 times fewer updates per
+epoch, a learning rate of 0.001 would move slowly, so I raised it to
+0.01 for the baseline, the value the lecture uses in its
+parameter-update example \citep{abidl08}. Task 4 (Chapter
+\ref{ch:task4}) tests whether this was a good choice. I left out dropout and weight decay so that the baseline shows
+the plain learning behavior of the network, and any overfitting would be
+visible in the curves.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Training Loop and Metric Calculation}
+\label{sec:loop}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Listing \ref{lst:loop} shows the training loop. For every batch it
+clears the old gradients, runs the forward pass, computes the loss,
+back-propagates and updates the weights. During the first epoch it also
+records, for each batch, the loss, the accuracy and the macro-F1 of that
+batch's predictions, plus a cumulative macro-F1 over every image seen so
+far in the epoch. These are the values plotted in Task 2 (Chapter
+\ref{ch:task2}).
+
+\lstinputlisting[language=Python, firstline=87, lastline=120,
+    firstnumber=auto,
+    caption={Training loop with first-epoch batch logging (\texttt{train.py}).},
+    label={lst:loop}]{../train.py}
+
+At the end of every epoch, \texttt{evaluate} (Listing \ref{lst:evaluate})
+runs the model in evaluation mode, without gradients, over the whole
+training split and the whole validation split. I measure the training
+metrics this way instead of averaging the batch values during the epoch,
+because the batch values mix early and late weights from the same epoch.
+Re-evaluating both sets with the same end-of-epoch weights makes the
+training and validation numbers directly comparable, which matters for
+the gap analysis in Task 3 (Chapter \ref{ch:task3}).
+
+Every F1-score in this report is macro-F1 (Equation \ref{eq:macrof1}),
+computed by \texttt{macro\_f1} with scikit-learn's
+\texttt{f1\_score(average="macro")}: the F1-score of each digit is
+computed separately and the values are averaged with equal weight over
+the digits that appear in the labels or the predictions. On the full
+training, validation and test sets that is always all 10 digits.
+Macro-precision and macro-recall for Task 5 are computed the
+same way with \texttt{precision\_score} and \texttt{recall\_score}.
+
+\lstinputlisting[language=Python, firstline=32, lastline=57,
+    firstnumber=auto,
+    caption={Macro-F1 and the evaluation function (\texttt{train.py}).},
+    label={lst:evaluate}]{../train.py}

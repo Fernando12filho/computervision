@@ -1,0 +1,30 @@
+\appendix
+\addtocontents{toc}{\protect\setcounter{tocdepth}{0}}
+\addtocontents{toc}{\protect\renewcommand{%
+    \protect\chapterprefix}{%
+    \protect\hspace*{-0.5in}APPENDIX\protect\hspace*{0.6in}}}%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% APPENDIX CONTENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Source Code}
+\label{app:source}
+
+The complete source files are listed below; they are the same files
+submitted alongside this report.
+
+\section{dataloader.py}
+\lstinputlisting[language=Python, caption={MNIST loading and data split (\texttt{dataloader.py}).}, label={lst:dataloader}]{../dataloader.py}
+
+\section{model.py}
+\lstinputlisting[language=Python, caption={CNN and parameter table (\texttt{model.py}).}, label={lst:modelfull}]{../model.py}
+
+\section{train.py}
+\lstinputlisting[language=Python, caption={Training, evaluation and testing (\texttt{train.py}).}, label={lst:trainfull}]{../train.py}
+
+\section{main.py}
+\lstinputlisting[language=Python, caption={Experiment driver (\texttt{main.py}).}, label={lst:mainfull}]{../main.py}
+
+\section{plots.py}
+\lstinputlisting[language=Python, caption={Figures (\texttt{plots.py}).}, label={lst:plotsfull}]{../plots.py}

@@ -1,0 +1,442 @@
+\chapter{Methodology and Implementation}
+\label{ch:method}
+
+%-------------------------------------------------------
+
+% TODO: opening paragraph. State the language, libraries and why they
+% were chosen (OpenCV for decoding/histograms, Tkinter for the GUI and
+% scroll bars, NumPy for array work, Pillow to bridge OpenCV -> Tkinter).
+% Note that MATLAB was not used, as required.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Development Environment}
+\label{sec:environment}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Table \ref{table:environment} lists the language and libraries I used
+to build and run the program, with their versions. Video capture,
+writing, and histogram computation all go through OpenCV
+\citep{bradski2000}; array operations use NumPy
+\citep{harris2020numpy}; frames are converted for display with
+Pillow \citep{pillow}; and the interface is built with Tkinter
+\citep{tkinter}.
+
+\begin{table}[h]
+    \centering
+    \caption[Software environment.]%
+    {Software environment used to develop and run the program.}
+
+    \begin{tabular}{P{1.6in}|P{1.2in}|P{2.4in}}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Component & Version & Purpose \\
+        \hline\hline
+        Python & 3.13.5 & Programming language used to implement the application \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        OpenCV (opencv-python) & 5.0.0.93 & Video capture and writing, frame processing, and histogram computation \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        NumPy & 2.5.2 & Array operations \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Pillow (PIL) & 12.3.0 & Converts OpenCV BGR frames into images that Tkinter can display \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Tkinter & bundled with Python (Tcl/Tk) & GUI toolkit: windows, scroll bars, buttons and labels \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:environment}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Application Architecture}
+\label{sec:architecture}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: describe the overall structure -- the single class, the UI build
+% step, the frame loop, and the separation between the display pipeline
+% and the export pipeline.
+
+
+I implemented the whole application as a single class,
+\texttt{VideoEditor} (Listing \ref{lst:architecture-class}), and
+grouped its methods by responsibility, as shown in Table
+\ref{table:methods}.
+
+\lstinputlisting[language=Python, firstline=41, lastline=44,
+    firstnumber=auto,
+    caption={The \texttt{VideoEditor} class and constructor signature (\texttt{main.py}).},
+    label={lst:architecture-class}]{../main.py}
+
+\begin{table}[h]
+    \centering
+    \caption[Key methods of the \texttt{VideoEditor} class.]%
+    {Key methods of the \texttt{VideoEditor} class and their responsibility.}
+
+    \begin{tabular}{P{1.6in}|P{3.6in}}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Method & Responsibility \\
+        \hline\hline
+        \texttt{\_\_init\_\_} & Opens the source video, restores persisted settings, builds the UI, and starts the main loop \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_build\_ui} / \texttt{\_video\_column} & Construct the video panels, histogram panels, sliders, and buttons \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_process} & Applies the brightness/contrast point operation (Equation \ref{eq:pointop}) to a frame \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_hist\_image} & Renders a per-channel histogram into a small BGR canvas \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_show} & Converts a BGR frame into a Tkinter-displayable image \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_read\_looping} / \texttt{\_tick} & Timer-driven main loop: reads frames, loops at end of stream, and refreshes all four panels \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_load\_settings} / \texttt{\_store\_settings} & Read and write \texttt{settings.json} to persist slider values between runs \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_save} / \texttt{\_save\_worker} / \texttt{\_poll\_save} & Prompt for an output file, export it on a background thread, and report progress \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        \texttt{\_toggle\_pause} / \texttt{\_reset} / \texttt{close} & Pause/resume playback, reset the sliders, and release resources on exit \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:methods}
+\end{table}
+
+% Optional: a block diagram / window-layout figure matching the layout
+% required by the assignment brief.
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width = 0.8\textwidth]{<architecture_diagram>}
+    \caption[Application architecture.]%
+    {<Caption: block diagram of the processing pipeline and window layout.>}
+    \label{fig:architecture}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 1 --- Loading and Displaying the Source Video}
+\label{sec:task1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: how the file is opened, how frames are read, how a BGR frame
+% becomes a widget image, and how the failure case is handled.
+
+
+I open the source file once, in the constructor, with
+\texttt{cv2.VideoCapture}; if the file cannot be opened, I show an
+error dialog and close the window (Listing \ref{lst:task1-open}).
+
+\lstinputlisting[language=Python, firstline=46, lastline=55,
+    firstnumber=auto,
+    caption={Opening the source video and computing the display size (\texttt{main.py}).},
+    label={lst:task1-open}]{../main.py}
+
+Every decoded frame is a NumPy array in OpenCV's BGR channel order,
+so to display it inside a Tkinter label I convert it to RGB and wrap
+it in a \texttt{PIL.ImageTk.PhotoImage}~\citep{pillow} (Listing
+\ref{lst:task1-show}). I keep a reference to the image in
+\texttt{self.\_refs}, since Tkinter does not hold its own reference
+and would otherwise garbage-collect it and leave the panel blank.
+
+\lstinputlisting[language=Python, firstline=263, lastline=267,
+    firstnumber=auto,
+    caption={Converting a BGR frame into a Tkinter-displayable image (\texttt{main.py}).},
+    label={lst:task1-show}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 2 --- Histogram of the Source Video}
+\label{sec:task2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: how the per-channel histogram is computed, how many bins, how it
+% is normalized to the canvas height, and how it is drawn and refreshed
+% once per frame.
+
+
+For each of the three color channels, I use
+\texttt{cv2.calcHist}~\citep{bradski2000} to bin the frame into 256 bins
+over the range $[0,256)$, normalize the result to the height of the
+histogram canvas, and draw it as a polyline (Listing
+\ref{lst:task2-hist}).
+
+\lstinputlisting[language=Python, firstline=248, lastline=261,
+    firstnumber=auto,
+    caption={Computing and drawing the per-channel histogram (\texttt{main.py}).},
+    label={lst:task2-hist}]{../main.py}
+
+I call this routine once per tick for the original frame, so the
+histogram panel refreshes at the same rate as the video (Listing
+\ref{lst:task2-call}).
+
+\lstinputlisting[language=Python, firstline=303, lastline=304,
+    firstnumber=auto,
+    caption={Refreshing the original video's histogram panel every frame (\texttt{main.py}).},
+    label={lst:task2-call}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 3 --- Preview (Adjusted) Video}
+\label{sec:task3}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: explain that a single decoded frame feeds both panels, that the
+% right panel is the adjusted copy, and why the two stay in sync.
+
+
+Both panels come from the same decoded frame, so they can never fall
+out of sync: I get the right-hand (``Edited'') panel by applying a
+brightness/contrast point operation to a copy of that frame with
+\texttt{cv2.convertScaleAbs} (Listing \ref{lst:task3-process}), which
+computes the linear mapping and clips the result to $[0,255]$ in one
+call.
+
+\lstinputlisting[language=Python, firstline=231, lastline=246,
+    firstnumber=auto,
+    caption={The brightness/contrast point operation, centered on mid-gray, applied to a frame (\texttt{main.py}).},
+    label={lst:task3-process}]{../main.py}
+
+\lstinputlisting[language=Python, firstline=298, lastline=299,
+    firstnumber=auto,
+    caption={Building the adjusted (preview) frame once per tick (\texttt{main.py}).},
+    label={lst:task3-call}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 4 --- Histogram of the Preview Video}
+\label{sec:task4}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: same routine applied to the adjusted frame; explain what the
+% viewer should expect to see happen to the distribution as each slider
+% moves (shift vs. stretch, and clipping at the ends of the range).
+
+I reuse the same \texttt{\_hist\_image} routine from Section
+\ref{sec:task2} on the adjusted frame, so both histograms are always
+computed identically and only differ because of the
+brightness/contrast operation itself (Listing \ref{lst:task4-call}).
+
+\lstinputlisting[language=Python, firstline=305, lastline=306,
+    firstnumber=auto,
+    caption={Refreshing the preview video's histogram panel every frame (\texttt{main.py}).},
+    label={lst:task4-call}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 5 --- Continuous Looping Playback}
+\label{sec:task5}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: how end-of-stream is detected, how the position is rewound to
+% frame 0, and how the timed callback drives playback at the target rate.
+
+\texttt{cv2.VideoCapture.read} returns \texttt{False} once the last
+frame has been consumed; when that happens, \texttt{\_read\_looping}
+rewinds the capture to frame 0 with \texttt{CAP\_PROP\_POS\_FRAMES}
+and reads again, so playback never stops (Listing
+\ref{lst:task5-read}).
+
+\lstinputlisting[language=Python, firstline=271, lastline=278,
+    firstnumber=auto,
+    caption={Reading the next frame and rewinding to frame 0 at end of stream (\texttt{main.py}).},
+    label={lst:task5-read}]{../main.py}
+
+I drive playback with \texttt{\_tick}, a callback that Tkinter's
+event loop re-invokes every \texttt{FRAME\_DELAY} ($30$~ms, $\approx
+33$~fps) through \texttt{root.after}. Each call reads one frame from
+each capture, builds the four panels described in Sections
+\ref{sec:task1}--\ref{sec:task4}, and reschedules itself, which is
+what keeps both videos playing continuously (Listing
+\ref{lst:task5-tick}).
+
+\lstinputlisting[language=Python, firstline=280, lastline=308,
+    firstnumber=auto,
+    caption={The timer-driven main loop that keeps both videos playing continuously (\texttt{main.py}).},
+    label={lst:task5-tick}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 6 --- Brightness and Contrast Scroll Bars}
+\label{sec:task6}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: the two sliders, their ranges and defaults, the variable each is
+% bound to, and how a slider change reaches the next rendered frame.
+% Reference Equation \ref{eq:pointop} from Chapter 1.
+
+I built the two scroll bars as \texttt{ttk.Scale}~\citep{tkinter}
+widgets bound to the \texttt{tk.DoubleVar} instances
+\texttt{self.brightness} and
+\texttt{self.contrast} (Listing \ref{lst:task6-sliders}). Because
+\texttt{\_process} (Listing \ref{lst:task3-process}) reads these
+variables directly every tick, moving a slider takes effect on the
+very next rendered frame, with no extra event wiring needed.
+
+\lstinputlisting[language=Python, firstline=170, lastline=182,
+    firstnumber=auto,
+    caption={Brightness and contrast scroll bars (\texttt{main.py}).},
+    label={lst:task6-sliders}]{../main.py}
+
+Table \ref{table:controls} lists the range and default of each
+control, corresponding to $\alpha$ and $\beta$ in Equation
+\ref{eq:pointop}.
+
+\begin{table}[h]
+    \centering
+    \caption[Adjustment controls.]%
+    {Adjustment controls, their ranges and their effect on the image.}
+
+    \begin{tabular}{P{1.2in}|c|c|P{2.6in}}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Control & Symbol & Range (default) & Effect \\
+        \hline\hline
+        Brightness & $\beta$ & $-100$ to $100$ ($0$) & Additive offset: shifts every pixel intensity up or down, translating the histogram left or right; clipped to $[0,255]$ \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Contrast & $\alpha$ & $0.1$ to $3.0$ ($1.0$) & Multiplicative gain pivoted on mid-gray (127.5): $\alpha>1$ stretches the histogram outward from the center (higher contrast), $\alpha<1$ compresses it toward the center (lower contrast), without shifting the overall brightness; also clipped to $[0,255]$ \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:controls}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 7 --- Save Functionality}
+\label{sec:task7}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: how saving is triggered, the codec/container written, why the
+% source is re-read at full resolution instead of exporting the preview,
+% why the export runs off the UI thread, and how progress and errors are
+% reported.
+
+I trigger saving either from the ``Save Video\ldots'' button or with
+\texttt{Ctrl+S} (both bound in the constructor, Listing
+\ref{lst:architecture-class}). I snapshot the current $\alpha$ and
+$\beta$ values at that moment, so later slider movements do not
+affect an export already in progress (Listing \ref{lst:task7-save}).
+
+\lstinputlisting[language=Python, firstline=321, lastline=341,
+    firstnumber=auto,
+    caption={Triggering the save dialog and starting the export on a background thread (\texttt{main.py}).},
+    label={lst:task7-save}]{../main.py}
+
+The export re-opens the source file at full resolution, instead of
+reusing the down-scaled preview frames, and runs on a background
+thread so both video panels keep updating while it works (Listings
+\ref{lst:task7-setup} and \ref{lst:task7-loop}).
+
+\lstinputlisting[language=Python, firstline=343, lastline=357,
+    firstnumber=auto,
+    caption={Re-opening the source at full resolution and preparing the output writer (\texttt{main.py}, excerpt).},
+    label={lst:task7-setup}]{../main.py}
+
+\lstinputlisting[language=Python, firstline=359, lastline=366,
+    firstnumber=auto,
+    caption={Applying the settings to each frame and tracking export progress (\texttt{main.py}, excerpt).},
+    label={lst:task7-loop}]{../main.py}
+
+\texttt{\_poll\_save} (Listing \ref{lst:task7-poll}) is the only
+place I touch Tkinter widgets while the export runs; the worker
+thread only ever writes to plain instance attributes
+(\texttt{self.save\_progress}, \texttt{self.save\_error}), which
+keeps me from touching Tkinter from the wrong thread.
+
+\lstinputlisting[language=Python, firstline=376, lastline=394,
+    firstnumber=auto,
+    caption={Polling the export status from the UI thread and reporting the result (\texttt{main.py}).},
+    label={lst:task7-poll}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Task 8 --- Persisting Settings Across Restarts}
+\label{sec:task8}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: where the slider values are stored between runs, the file format,
+% when they are written, when they are read back, and the fallback when
+% no stored settings exist.
+
+I store brightness, contrast, and the path of the last exported file
+in a JSON file, \texttt{settings.json}, next to the script.
+\texttt{\_load\_settings} reads it back when the program starts, and
+\texttt{\_store\_settings} writes it whenever the program closes and
+again right after a successful save, so both windows reopen with the
+same brightness, contrast, and exported-video source as before.
+
+\lstinputlisting[language=Python, firstline=88, lastline=109,
+    firstnumber=auto,
+    caption={Reading and writing \texttt{settings.json} (\texttt{main.py}).},
+    label={lst:task8-persist}]{../main.py}
+
+\lstinputlisting[language=Python, firstline=396, lastline=400,
+    firstnumber=auto,
+    caption={Settings are written back when the window closes (\texttt{main.py}).},
+    label={lst:task8-close}]{../main.py}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Additional Features}
+\label{sec:extras}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Table \ref{table:extras} lists a few features I added beyond the
+eight required tasks.
+
+\begin{table}[h]
+    \centering
+
+    \begin{tabular}{P{1.7in}|P{1.3in}|P{2.0in}}
+        \specialrule{1.5pt}{0pt}{0pt}
+        Feature & Implemented in & Trigger \\
+        \hline\hline
+        Pause / resume playback & \texttt{\_toggle\_pause} & ``Pause'' button or spacebar \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Reset sliders to defaults & \texttt{\_reset} & ``Reset'' button \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Save keyboard shortcut & \texttt{\_save} & \texttt{Ctrl+S} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Export progress bar & \texttt{\_poll\_save} & Updates automatically while saving \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        Toggle left panel between the original source and the last exported video & \texttt{\_toggle\_saved} & ``Left panel: exported video'' checkbox \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \caption[Additional features.]%
+    {Features implemented beyond the eight required tasks.}
+    \label{table:extras}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Requirements Traceability}
+\label{sec:traceability}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Table \ref{table:traceability} maps each of the eight required tasks
+to the function(s) that implement it and to the figure in Chapter
+\ref{ch:results} that demonstrates it.
+
+\begin{table}[h]
+    \centering
+    \caption[Requirements traceability.]%
+    {Mapping of each assignment requirement to its implementation and to the figure that demonstrates it.}
+
+    \begin{tabular}{c|P{1.9in}|P{1.7in}|c}
+        \specialrule{1.5pt}{0pt}{0pt}
+        \# & Requirement & Implemented in & Evidence \\
+        \hline\hline
+        1 & Load video on screen & \texttt{\_\_init\_\_}, \texttt{\_show} & Fig.~\ref{fig:default} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        2 & Histogram of that video & \texttt{\_hist\_image} & Fig.~\ref{fig:default} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        3 & Same video as preview & \texttt{\_process} & Fig.~\ref{fig:default} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        4 & Histogram of the preview & \texttt{\_hist\_image} & Fig.~\ref{fig:default} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        5 & Continuous looping & \texttt{\_read\_looping}, \texttt{\_tick} & Fig.~\ref{fig:looping} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        6 & Brightness / contrast bars & \texttt{\_build\_ui} & Figs.~\ref{fig:brightness}, \ref{fig:contrast} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        7 & Save functionality & \texttt{\_save}, \texttt{\_save\_worker} & Fig.~\ref{fig:save} \\
+        \specialrule{0.5pt}{0pt}{0pt}
+        8 & Settings restored on reload & \texttt{\_load\_settings}, \texttt{\_store\_settings} & Fig.~\ref{fig:persistence} \\
+        \specialrule{1.5pt}{0pt}{0pt}
+    \end{tabular}
+    \label{table:traceability}
+\end{table}
