@@ -49,8 +49,14 @@ data/
 *.h5
 
 # ---------------------------------------------------------------
-# LaTeX build artifacts (keep .tex, .bib, .sty, figures)
+# Assignment solutions: reports, generated results, PDFs.
+# Only code goes on GitHub.
 # ---------------------------------------------------------------
+report/
+results/
+*.pdf
+*.tex
+*.bib
 *.aux
 *.bbl
 *.blg
@@ -62,14 +68,6 @@ data/
 *.out
 *.toc
 *.synctex.gz
-build.log
-
-# ---------------------------------------------------------------
-# PDFs: only the compiled report of each assignment is kept.
-# Course handouts / lecture slides are the instructor's material.
-# ---------------------------------------------------------------
-*.pdf
-!**/report/main.pdf
 
 # ---------------------------------------------------------------
 # Submission bundles and duplicates

@@ -1,8 +1,9 @@
 # Computer Vision (CAP 5410)
 
 Coursework for CAP 5410, Computer Vision, Florida Polytechnic University.
-Each assignment lives in its own folder with its code, a `requirements.txt`,
-and a LaTeX report (`report/`, compiled to `report/main.pdf`).
+Each assignment lives in its own folder with its code and a
+`requirements.txt`. Only the code is published here; reports and generated
+results are kept out of the repo.
 
 | Folder | Topic | Stack |
 | --- | --- | --- |
@@ -23,12 +24,5 @@ pip install -r requirements.txt
 ```
 
 Assignment 3 downloads MNIST into `assignment3/data/` on first run, so the
-dataset is not stored in the repo. Trained weights (`*.pt`) are not stored
-either; run the training script to regenerate them.
-
-## Building a report
-
-```
-cd assignmentN/report
-latexmk -pdf main.tex
-```
+dataset is not stored in the repo. Running `python main.py` there recreates
+`results/` (histories, weights, metrics) and the figures.

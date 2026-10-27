@@ -64,5 +64,4 @@ the same numbers.
 | `plots.py` | All report figures |
 | `main.py` | Runs everything in order |
 | `requirements.txt` | Pinned dependency versions |
-| `results/` | Output log, per-configuration histories and weights, test metrics |
-| `Assignment3_Fernando_Melo_Filho.pdf` | The report |
+| `results/` | Created on run: output log, per-configuration histories and weights, test metrics |
